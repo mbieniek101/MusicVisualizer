@@ -3,7 +3,7 @@
  *
  * Each frame:
  *   audio features ─┐
- *   slider values ──┴─▶ mode.map() ──▶ scene.render()
+ *   slider values ──┴─▶ mode.map() ──▶ glide ──▶ scene.render()
  *
  * Per-frame work never crosses IPC. Slider changes arrive occasionally and are
  * copied into a local object; audio is analyzed right here, next to the loop.
@@ -14,6 +14,7 @@ import { activeMode } from '../modes/vhsLake'
 import { outputParams } from '../params/outputParams'
 import { defaultValues } from '../params/types'
 import { SILENT_FEATURES } from '../audio/types'
+import { ParamGlide } from '../mapping/glide'
 import { startAudioInput, type AudioInput } from './audioInput'
 
 const canvas = document.getElementById('stage') as HTMLCanvasElement
@@ -107,6 +108,8 @@ async function start(): Promise<void> {
   })
   canvas.addEventListener('webglcontextrestored', buildScene)
 
+  const glide = new ParamGlide(activeMode.glide)
+
   let time = 0
   let last = performance.now()
   let frames = 0
@@ -117,9 +120,11 @@ async function start(): Promise<void> {
     const dt = Math.min((now - last) / 1000, 0.1)
     last = now
 
-    // Listen, then decide what to draw: slider values adjusted by the audio.
+    // Listen, then decide what to draw: slider values adjusted by the audio,
+    // eased toward those targets so changes flow in rather than snap.
     const features = audio ? audio.update(dt) : SILENT_FEATURES
-    const live = activeMode.map(params, features)
+    const targets = activeMode.map(params, features)
+    const live = glide.update(targets, dt, params.smoothness)
 
     time += dt * live.speed
 

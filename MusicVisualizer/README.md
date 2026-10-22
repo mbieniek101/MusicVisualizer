@@ -34,6 +34,8 @@ Then watch **Audio meters** while you play:
 
 Loudness and the band meters auto-level, so your loudest recent playing reads as ~1 whatever your levels. The **Reactivity** sliders set how strongly each audio feature moves the visuals; 0 turns a connection off.
 
+**Smoothness** (top of Reactivity) sets how the visuals travel to where the audio sends them. At 1, each sound blooms in over a fraction of a second and fades out over a couple of seconds, like paint going on and drying. Lower it for tighter, punchier response; 0 turns the easing off entirely. The per-parameter timings are in `lakeGlide` in `src/renderer/src/mapping/lakeMapping.ts`.
+
 ## How the code is organized
 
 ```
