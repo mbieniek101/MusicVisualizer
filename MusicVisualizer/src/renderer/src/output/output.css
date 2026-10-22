@@ -1,0 +1,33 @@
+html,
+body {
+  margin: 0;
+  height: 100%;
+  overflow: hidden;
+  background: #000;
+}
+
+#stage {
+  display: block;
+  width: 100vw;
+  height: 100vh;
+}
+
+/* No cursor sitting on the projection mid-song. */
+body.fullscreen,
+body.fullscreen #stage {
+  cursor: none;
+}
+
+#error {
+  position: fixed;
+  inset: 16px;
+  margin: 0;
+  padding: 16px;
+  overflow: auto;
+  color: #ff8080;
+  background: rgba(20, 0, 0, 0.9);
+  font:
+    12px/1.4 Consolas,
+    monospace;
+  white-space: pre-wrap;
+}
