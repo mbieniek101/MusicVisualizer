@@ -1,15 +1,20 @@
 /**
- * Output window: owns the WebGL canvas and the render loop.
+ * Output window: owns the WebGL canvas, the audio input and the render loop.
  *
- * Per-frame work never crosses IPC. Parameter changes arrive occasionally
- * (when a slider moves) and are copied into a local object; the loop reads
- * that object every frame. Later, audio analysis will run here too, for the
- * same reason.
+ * Each frame:
+ *   audio features ─┐
+ *   slider values ──┴─▶ mode.map() ──▶ scene.render()
+ *
+ * Per-frame work never crosses IPC. Slider changes arrive occasionally and are
+ * copied into a local object; audio is analyzed right here, next to the loop.
  */
 import './output.css'
-import { createLakeScene } from '../render/scenes/lake'
 import type { Scene } from '../render/types'
-import { defaultLakeValues } from '../params/lakeParams'
+import { activeMode } from '../modes/vhsLake'
+import { outputParams } from '../params/outputParams'
+import { defaultValues } from '../params/types'
+import { SILENT_FEATURES } from '../audio/types'
+import { startAudioInput, type AudioInput } from './audioInput'
 
 const canvas = document.getElementById('stage') as HTMLCanvasElement
 const errorBox = document.getElementById('error') as HTMLPreElement
@@ -64,16 +69,30 @@ async function start(): Promise<void> {
     return
   }
 
-  // Start from defaults, then apply whatever main remembers (matters after a reload).
-  const params = { ...defaultLakeValues(), ...(await window.api.getParams()) }
+  // Slider values: defaults, then whatever main remembers (saved settings, or
+  // the current values after a reload).
+  const params = {
+    ...defaultValues([...activeMode.params, ...outputParams]),
+    ...(await window.api.getParams())
+  }
   window.api.onParams((patch) => Object.assign(params, patch))
 
   setupFullscreenControls()
 
+  // Audio failing to start shouldn't stop the visuals, so it's started separately
+  // and the loop runs on silence until (and unless) it's ready.
+  let audio: AudioInput | null = null
+  startAudioInput()
+    .then((input) => (audio = input))
+    .catch((err) => {
+      console.error('Audio input failed to start', err)
+      window.api.sendAudioStatus({ state: 'error', message: String(err) })
+    })
+
   let scene: Scene | null = null
   const buildScene = (): void => {
     try {
-      scene = createLakeScene(gl)
+      scene = activeMode.createScene(gl)
     } catch (err) {
       scene = null
       showError(err instanceof Error ? err.message : String(err))
@@ -97,12 +116,17 @@ async function start(): Promise<void> {
     // Clamp dt so a stall (window dragged, laptop asleep) doesn't jump the animation.
     const dt = Math.min((now - last) / 1000, 0.1)
     last = now
-    time += dt * params.speed
+
+    // Listen, then decide what to draw: slider values adjusted by the audio.
+    const features = audio ? audio.update(dt) : SILENT_FEATURES
+    const live = activeMode.map(params, features)
+
+    time += dt * live.speed
 
     resizeCanvas(params.renderScale)
     if (scene) {
       gl.viewport(0, 0, canvas.width, canvas.height)
-      scene.render({ time, width: canvas.width, height: canvas.height, params })
+      scene.render({ time, width: canvas.width, height: canvas.height, params: live })
     }
 
     frames++

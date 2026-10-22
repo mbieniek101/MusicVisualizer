@@ -8,8 +8,9 @@
 import { ipcMain, screen, type BrowserWindow, type IpcMainEvent } from 'electron'
 import { IPC, type ParamValues, type RenderStats } from '../shared/ipc'
 import { getOutputState, listDisplays, placeOutputWindow } from './windows'
+import { saveSettingsSoon, type StoredSettings } from './settings'
 
-interface Windows {
+export interface Windows {
   control: BrowserWindow
   output: BrowserWindow
 }
@@ -26,26 +27,30 @@ function sanitizeParams(value: unknown): ParamValues {
 }
 
 /** Send to a window only if it still exists (it may be closing). */
-function sendTo(win: BrowserWindow, channel: string, payload: unknown): void {
+export function sendTo(win: BrowserWindow, channel: string, payload: unknown): void {
   if (!win.isDestroyed()) win.webContents.send(channel, payload)
 }
 
-export function registerIpc({ control, output }: Windows): void {
+/**
+ * @param store the app's settings, loaded from disk at startup. Handlers update
+ *              it in place and schedule a save.
+ */
+export function registerIpc({ control, output }: Windows, store: StoredSettings): void {
   const fromControl = (e: IpcMainEvent): boolean => e.sender === control.webContents
   const fromOutput = (e: IpcMainEvent): boolean => e.sender === output.webContents
 
   // ---- parameters -------------------------------------------------------
-  // Main keeps the latest values so a reloaded output window can catch up.
-  let latestParams: ParamValues = {}
-
+  // Main keeps the latest values, so a reloaded window can catch up and the
+  // sliders come back where you left them next launch.
   ipcMain.on(IPC.paramsUpdate, (event, patch: unknown) => {
     if (!fromControl(event)) return
     const clean = sanitizeParams(patch)
-    latestParams = { ...latestParams, ...clean }
+    store.params = { ...store.params, ...clean }
+    saveSettingsSoon(store)
     sendTo(output, IPC.paramsUpdate, clean)
   })
 
-  ipcMain.handle(IPC.paramsGet, () => latestParams)
+  ipcMain.handle(IPC.paramsGet, () => store.params)
 
   // ---- displays and the output window -----------------------------------
   const broadcastOutputState = (): void => {

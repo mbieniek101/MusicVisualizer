@@ -3,20 +3,13 @@
  *
  * The control window builds its sliders from this list, and the output window
  * takes its starting values from it. To add a parameter: add an entry here,
- * then read it in lake.ts / lake.frag.glsl. Later, the audio mapping layer
- * will write to these same keys instead of (or on top of) the sliders.
+ * then read it in lake.ts / lake.frag.glsl.
+ *
+ * These are the *base* values. When audio is on, mapping/lakeMapping.ts
+ * adjusts them each frame before they reach the shader; the sliders set where
+ * the visuals rest when you're not playing.
  */
-import type { ParamValues } from '../../../shared/ipc'
-
-export interface ParamSpec {
-  key: string
-  label: string
-  group: string
-  min: number
-  max: number
-  step: number
-  default: number
-}
+import type { ParamSpec } from './types'
 
 export const lakeParams: ParamSpec[] = [
   // Motion
@@ -75,20 +68,5 @@ export const lakeParams: ParamSpec[] = [
     max: 0.5,
     step: 0.005,
     default: 0.12
-  },
-
-  // Performance: render at a fraction of the screen resolution and let the GPU upscale
-  {
-    key: 'renderScale',
-    label: 'Render scale',
-    group: 'Performance',
-    min: 0.25,
-    max: 1,
-    step: 0.05,
-    default: 0.75
   }
 ]
-
-export function defaultLakeValues(): ParamValues {
-  return Object.fromEntries(lakeParams.map((p) => [p.key, p.default]))
-}

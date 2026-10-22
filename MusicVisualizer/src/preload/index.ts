@@ -10,12 +10,17 @@
 import { contextBridge, ipcRenderer, type IpcRendererEvent } from 'electron'
 import {
   IPC,
+  type AudioFilePayload,
+  type AudioInputInfo,
+  type AudioMeters,
+  type AudioStatus,
   type DisplayInfo,
   type OutputState,
   type ParamValues,
   type RenderStats,
   type VisualizerApi
 } from '../shared/ipc'
+import type { AudioSettings } from '../shared/audioSettings'
 
 /** Subscribe to a main → renderer channel; returns an unsubscribe function. */
 function subscribe<T>(channel: string, callback: (payload: T) => void): () => void {
@@ -36,6 +41,22 @@ const api: VisualizerApi = {
   toggleOutputFullscreen: () => ipcRenderer.send(IPC.outputToggleFullscreen),
   getOutputState: () => ipcRenderer.invoke(IPC.outputGetState),
   onOutputState: (callback) => subscribe<OutputState>(IPC.outputState, callback),
+
+  sendAudioSettings: (patch) => ipcRenderer.send(IPC.audioSettingsUpdate, patch),
+  getAudioSettings: () => ipcRenderer.invoke(IPC.audioSettingsGet),
+  onAudioSettings: (callback) => subscribe<AudioSettings>(IPC.audioSettingsUpdate, callback),
+
+  sendAudioDevices: (devices) => ipcRenderer.send(IPC.audioDevices, devices),
+  getAudioDevices: () => ipcRenderer.invoke(IPC.audioDevicesGet),
+  onAudioDevices: (callback) => subscribe<AudioInputInfo[]>(IPC.audioDevices, callback),
+  sendAudioStatus: (status) => ipcRenderer.send(IPC.audioStatus, status),
+  getAudioStatus: () => ipcRenderer.invoke(IPC.audioStatusGet),
+  onAudioStatus: (callback) => subscribe<AudioStatus>(IPC.audioStatus, callback),
+  sendAudioMeters: (meters) => ipcRenderer.send(IPC.audioMeters, meters),
+  onAudioMeters: (callback) => subscribe<AudioMeters>(IPC.audioMeters, callback),
+
+  openAudioFile: () => ipcRenderer.invoke(IPC.audioOpenFile),
+  onAudioFile: (callback) => subscribe<AudioFilePayload>(IPC.audioFile, callback),
 
   sendStats: (stats) => ipcRenderer.send(IPC.stats, stats),
   onStats: (callback) => subscribe<RenderStats>(IPC.stats, callback)
