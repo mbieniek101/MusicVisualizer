@@ -1,0 +1,23 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>MusicVisualizer · Controls</title>
+    <!-- Only load code from the app itself. https://developer.mozilla.org/en-US/docs/Web/HTTP/CSP -->
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:"
+    />
+  </head>
+
+  <body>
+    <header>
+      <h1>MusicVisualizer</h1>
+      <p class="hint">
+        Output window: <kbd>F</kbd> or double-click toggles fullscreen, <kbd>Esc</kbd> exits.
+      </p>
+    </header>
+    <div id="pane"></div>
+    <script type="module" src="./src/control/main.ts"></script>
+  </body>
+</html>
