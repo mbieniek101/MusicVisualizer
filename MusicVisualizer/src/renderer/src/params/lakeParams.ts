@@ -23,7 +23,7 @@ export const lakeParams: ParamSpec[] = [
   { key: 'speed', label: 'Flow speed', group: 'Motion', min: 0, max: 2, step: 0.01, default: 0.3 },
 
   // Shape
-  { key: 'scale', label: 'Zoom', group: 'Shape', min: 0.5, max: 6, step: 0.01, default: 3 },
+  { key: 'zoom', label: 'Zoom', group: 'Shape', min: 0.5, max: 4, step: 0.01, default: 1 },
   { key: 'warp', label: 'Warp', group: 'Shape', min: 0, max: 8, step: 0.01, default: 3 },
   { key: 'octaves', label: 'Detail', group: 'Shape', min: 1, max: 8, step: 1, default: 5 },
 

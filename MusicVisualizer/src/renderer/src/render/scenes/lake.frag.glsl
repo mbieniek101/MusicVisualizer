@@ -10,7 +10,7 @@ precision highp float;
 
 uniform vec2 uResolution;    // canvas size in pixels
 uniform float uTime;         // already scaled by flow speed on the JS side
-uniform float uScale;        // zoom: higher = more, smaller blobs
+uniform float uZoom;         // higher = closer in: fewer, bigger blobs
 uniform float uWarp;         // how strongly each noise layer pushes the next
 uniform int uOctaves;        // fbm detail layers
 uniform float uHue;          // rotates the palette
@@ -91,7 +91,9 @@ void main() {
   vec2 uv = (gl_FragCoord.xy - 0.5 * uResolution) / uResolution.y;
   // The offset keeps us away from the noise origin, where hashes tend to come out
   // low; without it the center of the screen (the middle of the amp) stays dark.
-  vec2 p = uv * uScale + vec2(37.2, 17.9);
+  // Dividing by zoom means a bigger value shows less of the pattern, i.e. zooms in.
+  // At zoom 1 the screen height spans 3 units of noise.
+  vec2 p = uv * (3.0 / uZoom) + vec2(37.2, 17.9);
   float t = uTime;
 
   // Layer 1: a slowly drifting 2D offset field.

@@ -10,7 +10,7 @@ import type { FrameState, Scene } from '../types'
 const UNIFORMS = [
   'uResolution',
   'uTime',
-  'uScale',
+  'uZoom',
   'uWarp',
   'uOctaves',
   'uHue',
@@ -31,7 +31,7 @@ export function createLakeScene(gl: WebGL2RenderingContext): Scene {
       gl.useProgram(program)
       gl.uniform2f(u.uResolution, width, height)
       gl.uniform1f(u.uTime, time)
-      gl.uniform1f(u.uScale, params.scale)
+      gl.uniform1f(u.uZoom, params.zoom)
       gl.uniform1f(u.uWarp, params.warp)
       gl.uniform1i(u.uOctaves, Math.round(params.octaves))
       gl.uniform1f(u.uHue, params.hue)
