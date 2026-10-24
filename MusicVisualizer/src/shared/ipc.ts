@@ -114,6 +114,8 @@ export interface AudioMeters {
   high: number
   brightness: number
   onset: number
+  momentum: number
+  surge: number
   /** Raw input level in dBFS, before any normalizing. */
   inputDb: number
   clipping: boolean

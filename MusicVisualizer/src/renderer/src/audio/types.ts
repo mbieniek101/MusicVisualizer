@@ -19,6 +19,10 @@ export interface AudioFeatures {
   onset: number
   /** True only on the single frame an attack is detected. Good for triggering events. */
   isOnset: boolean
+  /** How hard and busy your playing has been lately: builds over ~1.5 s, drains over ~3.5 s. See momentum.ts. */
+  momentum: number
+  /** A push from each attack that coasts back down; fast runs stack up. See momentum.ts. */
+  surge: number
   /** Raw input level in dBFS (0 = full scale), before gain normalizing. */
   inputDb: number
   /** True while the input is hitting full scale (turn the gain or amp output down). */
@@ -34,6 +38,8 @@ export const SILENT_FEATURES: AudioFeatures = {
   brightness: 0.5,
   onset: 0,
   isOnset: false,
+  momentum: 0,
+  surge: 0,
   inputDb: -Infinity,
   clipping: false
 }

@@ -14,7 +14,10 @@ export interface Mode {
   /** Every slider this mode shows (scene parameters + reactivity amounts). */
   params: ParamSpec[]
   createScene(gl: WebGL2RenderingContext): Scene
-  /** Slider values + audio → where each parameter should be heading. */
+  /**
+   * Slider values + audio → where each parameter should be heading. May also
+   * return `smoothness`, which then replaces the slider's value for the glide.
+   */
   map(base: ParamValues, audio: AudioFeatures): ParamValues
   /** How quickly each parameter travels to its target (scaled by the Smoothness slider). */
   glide: GlideSpec

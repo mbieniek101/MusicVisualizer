@@ -12,7 +12,9 @@ const loud: AudioFeatures = {
   mid: 1,
   high: 1,
   onset: 1,
-  brightness: 0.5
+  brightness: 0.5,
+  momentum: 1,
+  surge: 1
 }
 
 describe('mapLake', () => {
@@ -36,9 +38,26 @@ describe('mapLake', () => {
     const off = { ...base }
     for (const spec of lakeReactivityParams) off[spec.key] = 0
     const out = mapLake(off, loud)
-    for (const key of ['speed', 'blackLevel', 'warp', 'brightness', 'zoom']) {
+    for (const key of ['speed', 'blackLevel', 'warp', 'brightness', 'zoom', 'colorSpread']) {
       expect(out[key]).toBeCloseTo(off[key], 10)
     }
+  })
+
+  it('shoves the flow forward on a surge, more than loudness alone does', () => {
+    const steady = mapLake(base, { ...loud, surge: 0, momentum: 0 })
+    const shoved = mapLake(base, { ...loud, surge: 1, momentum: 0 })
+    expect(shoved.speed).toBeGreaterThan(steady.speed + 1)
+    expect(shoved.zoom).toBeGreaterThan(steady.zoom)
+  })
+
+  it('makes everything wilder and more responsive as momentum builds', () => {
+    const calm = mapLake(base, { ...loud, momentum: 0 })
+    const intense = mapLake(base, { ...loud, momentum: 1 })
+    expect(intense.speed).toBeGreaterThan(calm.speed)
+    expect(intense.warp).toBeGreaterThan(calm.warp)
+    expect(intense.colorSpread).toBeGreaterThan(calm.colorSpread)
+    expect(intense.smoothness).toBeLessThan(calm.smoothness)
+    expect(intense.smoothness).toBeGreaterThan(0) // never drops to no smoothing at all
   })
 
   it('never pushes the black level below 0', () => {

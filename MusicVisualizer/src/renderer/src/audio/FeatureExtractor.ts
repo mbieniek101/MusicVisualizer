@@ -2,7 +2,8 @@
  * Turns one frame of raw analyzer data into AudioFeatures.
  *
  *   samples + spectrum ──▶ measure (dsp.ts) ──▶ gate ──▶ normalize (AutoLevel)
- *                                                    ──▶ smooth (Envelope) ──▶ AudioFeatures
+ *                                                    ──▶ smooth (Envelope)
+ *                                                    ──▶ momentum (momentum.ts) ──▶ AudioFeatures
  *
  * No Web Audio in here: AudioEngine reads the analyser and passes plain
  * arrays in, which is what lets FeatureExtractor.test.ts feed it synthetic
@@ -21,6 +22,7 @@ import {
   toDb
 } from './dsp'
 import { AutoLevel, Envelope, OnsetDetector } from './smoothing'
+import { Momentum } from './momentum'
 import type { AnalysisFrame, AnalysisSettings, AudioFeatures } from './types'
 
 // ---- tuning -------------------------------------------------------------------
@@ -84,6 +86,7 @@ export class FeatureExtractor {
   }
 
   private onsets = new OnsetDetector()
+  private momentum = new Momentum()
   private onsetValue = 0
   private clipTimer = 0
 
@@ -124,14 +127,21 @@ export class FeatureExtractor {
     const isOnset = this.detectOnset(sampleRate, settings.sensitivity, gated, dt)
     this.onsetValue = isOnset ? 1 : this.onsetValue * Math.exp(-dt / ONSET_DECAY)
 
+    const smoothedLevel = this.levelEnv.update(level, dt)
+
+    // 6. Momentum: how the playing has been building up over the last few seconds.
+    const { energy, surge } = this.momentum.update(isOnset, smoothedLevel, dt)
+
     return {
-      level: this.levelEnv.update(level, dt),
+      level: smoothedLevel,
       low: this.lowEnv.update(low, dt),
       mid: this.midEnv.update(mid, dt),
       high: this.highEnv.update(high, dt),
       brightness: this.brightnessEnv.update(brightnessTarget, dt),
       onset: this.onsetValue,
       isOnset,
+      momentum: energy,
+      surge,
       inputDb,
       clipping: this.clipTimer > 0
     }

@@ -34,7 +34,15 @@ Then watch **Audio meters** while you play:
 
 Loudness and the band meters auto-level, so your loudest recent playing reads as ~1 whatever your levels. The **Reactivity** sliders set how strongly each audio feature moves the visuals; 0 turns a connection off.
 
-**Smoothness** (top of Reactivity) sets how the visuals travel to where the audio sends them. At 1, each sound blooms in over a fraction of a second and fades out over a couple of seconds, like paint going on and drying. Lower it for tighter, punchier response; 0 turns the easing off entirely. The per-parameter timings are in `lakeGlide` in `src/renderer/src/mapping/lakeMapping.ts`.
+The visuals respond in three layers:
+
+- **The sound right now**: loudness spreads color, lows stir the liquid, tone shifts the palette, and each pick attack flares the colors.
+- **Surge**: each attack shoves the lake forward and it coasts to a stop. Attacks that land before it stops stack up, so a fast run builds into a big rush while a single note is a nudge.
+- **Momentum**: playing hard and busy builds up over a couple of seconds and makes everything faster, more turbulent, more colorful and snappier, then winds down a few seconds after you stop. A quiet intro stays calm; a heavy section takes the lake with it.
+
+Watch **Surge** and **Momentum** in Audio meters to see them working. **Momentum → intensity** and **Attack → surge** set how much they do.
+
+**Smoothness** (top of Reactivity) sets how quickly the visuals travel to where the audio sends them; momentum shortens it while you're playing hard. Lower it for punchier response; 0 turns the easing off entirely. The per-parameter timings are in `lakeGlide` in `src/renderer/src/mapping/lakeMapping.ts`, and the momentum tuning is at the top of `src/renderer/src/audio/momentum.ts`.
 
 ## How the code is organized
 

@@ -124,7 +124,8 @@ async function start(): Promise<void> {
     // eased toward those targets so changes flow in rather than snap.
     const features = audio ? audio.update(dt) : SILENT_FEATURES
     const targets = activeMode.map(params, features)
-    const live = glide.update(targets, dt, params.smoothness)
+    // The mode can adjust smoothness itself (the lake makes hard playing snappier).
+    const live = glide.update(targets, dt, targets.smoothness ?? params.smoothness)
 
     time += dt * live.speed
 

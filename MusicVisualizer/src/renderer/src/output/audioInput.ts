@@ -150,6 +150,8 @@ export async function startAudioInput(): Promise<AudioInput> {
           high: features.high,
           brightness: features.brightness,
           onset: features.onset,
+          momentum: features.momentum,
+          surge: features.surge,
           inputDb: features.inputDb,
           clipping: features.clipping
         })

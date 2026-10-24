@@ -110,6 +110,8 @@ export function createAudioPanel(pane: Pane): { init(): Promise<void> } {
     high: 0,
     brightness: 0,
     onset: 0,
+    momentum: 0,
+    surge: 0,
     inputDb: -120,
     clipping: false
   }
@@ -131,6 +133,8 @@ export function createAudioPanel(pane: Pane): { init(): Promise<void> } {
   graph('high', 'Highs')
   graph('brightness', 'Tone')
   graph('onset', 'Attacks')
+  graph('surge', 'Surge')
+  graph('momentum', 'Momentum')
   metersFolder.addBinding(meters, 'inputDb', {
     label: 'Input (dBFS)',
     readonly: true,
