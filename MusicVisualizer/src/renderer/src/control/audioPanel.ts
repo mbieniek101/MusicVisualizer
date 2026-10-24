@@ -57,6 +57,10 @@ export function createAudioPanel(pane: Pane): { init(): Promise<void> } {
     sourceList.on('change', (ev) => send({ source: ev.value }))
   }
 
+  // Restarts the selected source. Useful if Windows audio got into a strange state,
+  // though switching playback devices is normally followed automatically.
+  folder.addButton({ title: 'Reconnect input' }).on('click', () => window.api.reconnectAudio())
+
   folder.addButton({ title: 'Load audio file…' }).on('click', async () => {
     const name = await window.api.openAudioFile()
     if (!name) return // cancelled

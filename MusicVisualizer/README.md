@@ -23,7 +23,7 @@ Closing either window quits the app. Slider values and audio settings are saved 
 In **Audio input**, pick a **Source**:
 
 - **A recording device**: your amp's USB output, an audio interface, a line in. The browser's voice-call processing (echo cancellation, noise suppression, auto gain) is turned off so your dynamics come through untouched.
-- **System audio (Windows)**: whatever the computer is playing, e.g. a backing track.
+- **System audio (Windows)**: whatever the computer is playing, e.g. a backing track. You can listen on headphones at the same time. If you switch playback devices (connect Bluetooth headphones, plug in HDMI), the capture follows the new device automatically; the status line shows which device it's listening through. **Reconnect input** restarts the source if it ever gets stuck.
 - **Audio file**: click **Load audio file…** to loop a recording through the speakers. Handy for tuning at a desk without your rig.
 
 Then watch **Audio meters** while you play:
