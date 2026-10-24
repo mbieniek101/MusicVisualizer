@@ -19,6 +19,7 @@ uniform float uSaturation;
 uniform float uBrightness;
 uniform float uBlackLevel;   // noise value below which everything is black
 uniform float uSoftness;     // width of the fade from black into a blob
+uniform float uTwist;        // whirlpool: radians of twist at the center (sign = direction)
 
 out vec4 outColor;
 
@@ -91,6 +92,15 @@ void main() {
   vec2 uv = (gl_FragCoord.xy - 0.5 * uResolution) / uResolution.y;
   // The offset keeps us away from the noise origin, where hashes tend to come out
   // low; without it the center of the screen (the middle of the amp) stays dark.
+  // Whirlpool. Rotate each point around the center by an angle that's largest
+  // in the middle and fades out toward the edges. Because the angle changes
+  // with distance, the pattern doesn't turn as a whole: it gets wound into a
+  // spiral, like stirring the middle of a pond. String bends drive this.
+  float twist = uTwist * exp(-dot(uv, uv) * 3.0);
+  float c = cos(twist);
+  float s = sin(twist);
+  uv = mat2(c, s, -s, c) * uv;
+
   // Dividing by zoom means a bigger value shows less of the pattern, i.e. zooms in.
   // At zoom 1 the screen height spans 3 units of noise.
   vec2 p = uv * (3.0 / uZoom) + vec2(37.2, 17.9);

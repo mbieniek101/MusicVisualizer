@@ -99,3 +99,37 @@ describe('FeatureExtractor', () => {
     expect(play(ex, toneFrame(440, 0.5), 1).clipping).toBe(false)
   })
 })
+
+describe('FeatureExtractor bends', () => {
+  /** A harmonic tone at `hz`, as the analyser would report it. */
+  function guitarFrame(hz: number, amplitude: number): AnalysisFrame {
+    const timeDomain = Float32Array.from({ length: FFT_SIZE }, (_, i) => {
+      let v = 0
+      for (let h = 1; h <= 5; h++) v += Math.sin((2 * Math.PI * hz * h * i) / SAMPLE_RATE) / h
+      return amplitude * 0.5 * v
+    })
+    const spectrumDb = new Float32Array(FFT_SIZE / 2).fill(-120)
+    for (let h = 1; h <= 5; h++) {
+      spectrumDb[frequencyToBin(hz * h, SAMPLE_RATE, FFT_SIZE / 2)] =
+        20 * Math.log10(amplitude / (2 * h))
+    }
+    return { timeDomain, spectrumDb, sampleRate: SAMPLE_RATE, dt: DT }
+  }
+
+  it('reads a whole-step bend as ~1 while it happens, and 0 on an unbent note', () => {
+    const ex = new FeatureExtractor()
+    play(ex, toneFrame(196, 0), 0.5) // silence
+    let f = play(ex, guitarFrame(196, 0.5), 0.3) // pick G and let it ring
+    expect(Math.abs(f.bend)).toBeLessThan(0.05)
+
+    // bend up a whole step over 0.3 s
+    const values: number[] = []
+    for (let i = 1; i <= 18; i++) {
+      f = ex.update(guitarFrame(196 * Math.pow(2, (2 * i) / 18 / 12), 0.5), SETTINGS)
+      values.push(f.bend)
+    }
+    f = play(ex, guitarFrame(196 * Math.pow(2, 2 / 12), 0.5), 0.2)
+    expect(values[8]).toBeGreaterThan(0.3) // partway through the bend
+    expect(f.bend).toBeCloseTo(1, 1)
+  })
+})

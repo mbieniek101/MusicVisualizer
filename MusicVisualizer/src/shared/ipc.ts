@@ -116,6 +116,8 @@ export interface AudioMeters {
   onset: number
   momentum: number
   surge: number
+  /** -1..1 (can exceed): a whole-step bend up = 1. */
+  bend: number
   /** Raw input level in dBFS, before any normalizing. */
   inputDb: number
   clipping: boolean

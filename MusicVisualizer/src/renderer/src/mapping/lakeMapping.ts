@@ -17,6 +17,10 @@
  *     makes everything faster, wilder, more colorful and more responsive,
  *     then winds down after you stop
  *
+ * And one gesture that follows your fretting hand directly: bending a string
+ * winds a whirlpool into the middle of the pond (bend up one way, down the
+ * other), and slides the colors along the palette. Vibrato makes it wobble.
+ *
  * Each connection has an "amount" slider (the Reactivity folder) so you can
  * dial it in while playing. Amount 0 turns that connection off.
  */
@@ -29,6 +33,8 @@ export const lakeReactivityParams: ParamSpec[] = [
   smoothnessParam,
   reactivity('reactMomentum', 'Momentum → intensity', 1),
   reactivity('reactSurge', 'Attack → surge', 1),
+  reactivity('reactBendSwirl', 'Bend → whirlpool', 1),
+  reactivity('reactBendColor', 'Bend → color slide', 0.6),
   reactivity('reactLevelCoverage', 'Loudness → coverage', 0.9),
   reactivity('reactOnsetFlash', 'Attack → glow', 0.6),
   reactivity('reactBrightnessHue', 'Tone → color', 0.6),
@@ -54,6 +60,10 @@ export const lakeGlide: GlideSpec = {
   // Color shifts like pigments mixing.
   hue: { rise: 0.8, fall: 0.8 },
   colorSpread: { rise: 0.6, fall: 1.5 },
+  // The whirlpool follows your finger closely: bends are already smooth, and a
+  // lag here would make vibrato mushy. (When a note ends, the bend tracker
+  // relaxes the bend back to 0 gently, so the whirlpool unwinds on its own.)
+  twist: { rise: 0.08, fall: 0.08 },
   // Warp and zoom reshape the whole frame: quick enough to feel, slow enough not to jolt.
   warp: { rise: 0.4, fall: 1.4 },
   zoom: { rise: 0.12, fall: 0.8 }
@@ -89,11 +99,19 @@ export function mapLake(base: ParamValues, audio: AudioFeatures): ParamValues {
   // Color. Bright tone (bridge pickup, treble) swings the palette one way, dark tone
   // the other (brightness sits near 0.5 for a typical guitar). Momentum spreads the
   // palette wider, so intense playing brings out more colors at once.
-  p.hue = base.hue + base.reactBrightnessHue * (audio.brightness - 0.5) * 0.4
+  // Bending slides the colors along the palette as the pitch moves.
+  p.hue =
+    base.hue +
+    base.reactBrightnessHue * (audio.brightness - 0.5) * 0.4 +
+    base.reactBendColor * audio.bend * 0.12
   p.colorSpread = base.colorSpread * (1 + momentum * 0.5)
 
   // Each pick attack flares the colors brighter, and momentum lifts the whole picture.
   p.brightness = base.brightness * (1 + base.reactOnsetFlash * audio.onset * 0.6 + momentum * 0.15)
+
+  // Bends wind a whirlpool into the middle of the pond. A whole-step bend twists
+  // the center about 1.6 radians (a quarter turn); bending down twists the other way.
+  p.twist = base.twist + base.reactBendSwirl * audio.bend * 1.6
 
   // Surges push the view inward, so a fast run feels like rushing forward.
   p.zoom = base.zoom * (1 + base.reactOnsetZoom * surge * 0.15)

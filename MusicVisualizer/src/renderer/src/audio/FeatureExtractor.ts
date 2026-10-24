@@ -3,7 +3,8 @@
  *
  *   samples + spectrum ──▶ measure (dsp.ts) ──▶ gate ──▶ normalize (AutoLevel)
  *                                                    ──▶ smooth (Envelope)
- *                                                    ──▶ momentum (momentum.ts) ──▶ AudioFeatures
+ *                                                    ──▶ momentum (momentum.ts)
+ *   samples ──▶ pitch (pitch.ts) ──▶ bend (bend.ts) ──────────────────▶ AudioFeatures
  *
  * No Web Audio in here: AudioEngine reads the analyser and passes plain
  * arrays in, which is what lets FeatureExtractor.test.ts feed it synthetic
@@ -23,6 +24,8 @@ import {
 } from './dsp'
 import { AutoLevel, Envelope, OnsetDetector } from './smoothing'
 import { Momentum } from './momentum'
+import { BendTracker } from './bend'
+import { detectPitch, downsample2 } from './pitch'
 import type { AnalysisFrame, AnalysisSettings, AudioFeatures } from './types'
 
 // ---- tuning -------------------------------------------------------------------
@@ -63,6 +66,9 @@ const ONSET_COMPRESSION = 1000
  */
 const ONSET_MIN_FLUX = 0.005
 
+/** Pitch range to look for: just under a guitar's low E, up to the top frets of the high E. */
+const PITCH_RANGE = [70, 1400] as const
+
 // ---------------------------------------------------------------------------------
 
 export class FeatureExtractor {
@@ -87,6 +93,8 @@ export class FeatureExtractor {
 
   private onsets = new OnsetDetector()
   private momentum = new Momentum()
+  private bendTracker = new BendTracker()
+  private downsampled = new Float32Array(0)
   private onsetValue = 0
   private clipTimer = 0
 
@@ -132,6 +140,13 @@ export class FeatureExtractor {
     // 6. Momentum: how the playing has been building up over the last few seconds.
     const { energy, surge } = this.momentum.update(isOnset, smoothedLevel, dt)
 
+    // 7. Bends: track the held note's pitch. Pitch detection is the most expensive
+    //    step, so it runs at half the sample rate and is skipped during silence.
+    const pitch = gated
+      ? { hz: 0, clarity: 0 }
+      : detectPitch(this.downsample(timeDomain), sampleRate / 2, PITCH_RANGE[0], PITCH_RANGE[1])
+    const bend = this.bendTracker.update(pitch, isOnset, gated, dt)
+
     return {
       level: smoothedLevel,
       low: this.lowEnv.update(low, dt),
@@ -142,6 +157,7 @@ export class FeatureExtractor {
       isOnset,
       momentum: energy,
       surge,
+      bend,
       inputDb,
       clipping: this.clipTimer > 0
     }
@@ -174,6 +190,13 @@ export class FeatureExtractor {
 
     const detected = this.onsets.update(flux, sensitivity, ONSET_MIN_FLUX, dt)
     return detected && !gated
+  }
+
+  private downsample(samples: Float32Array): Float32Array {
+    if (this.downsampled.length !== samples.length >> 1) {
+      this.downsampled = new Float32Array(samples.length >> 1)
+    }
+    return downsample2(samples, this.downsampled)
   }
 
   private ensureBuffers(binCount: number): void {

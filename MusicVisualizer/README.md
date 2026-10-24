@@ -40,7 +40,9 @@ The visuals respond in three layers:
 - **Surge**: each attack shoves the lake forward and it coasts to a stop. Attacks that land before it stops stack up, so a fast run builds into a big rush while a single note is a nudge.
 - **Momentum**: playing hard and busy builds up over a couple of seconds and makes everything faster, more turbulent, more colorful and snappier, then winds down a few seconds after you stop. A quiet intro stays calm; a heavy section takes the lake with it.
 
-Watch **Surge** and **Momentum** in Audio meters to see them working. **Momentum → intensity** and **Attack → surge** set how much they do.
+- **Bends**: bending a string winds a whirlpool into the middle of the pond, one way for bending up and the other for bending down, and slides the colors along the palette. It follows your finger as you bend, vibrato makes it wobble, and it unwinds when you release. Chords don't trigger it, only single notes. **Swirl** (in Shape) sets a resting whirlpool that bends add to.
+
+Watch **Surge**, **Momentum** and **Bend** in Audio meters to see them working. **Momentum → intensity** and **Attack → surge** set how much they do.
 
 **Smoothness** (top of Reactivity) sets how quickly the visuals travel to where the audio sends them; momentum shortens it while you're playing hard. Lower it for punchier response; 0 turns the easing off entirely. The per-parameter timings are in `lakeGlide` in `src/renderer/src/mapping/lakeMapping.ts`, and the momentum tuning is at the top of `src/renderer/src/audio/momentum.ts`.
 

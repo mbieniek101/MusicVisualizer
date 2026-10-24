@@ -112,6 +112,7 @@ export function createAudioPanel(pane: Pane): { init(): Promise<void> } {
     onset: 0,
     momentum: 0,
     surge: 0,
+    bend: 0,
     inputDb: -120,
     clipping: false
   }
@@ -135,6 +136,16 @@ export function createAudioPanel(pane: Pane): { init(): Promise<void> } {
   graph('onset', 'Attacks')
   graph('surge', 'Surge')
   graph('momentum', 'Momentum')
+  // Bends go both ways, so this graph is centered on 0: up = bent sharp, down = flat.
+  metersFolder.addBinding(meters, 'bend', {
+    label: 'Bend',
+    readonly: true,
+    view: 'graph',
+    min: -1.2,
+    max: 1.2,
+    interval: 50,
+    rows: 2
+  })
   metersFolder.addBinding(meters, 'inputDb', {
     label: 'Input (dBFS)',
     readonly: true,

@@ -19,6 +19,9 @@ export const lakeParams: ParamSpec[] = [
   { key: 'zoom', label: 'Zoom', group: 'Shape', min: 0.5, max: 4, step: 0.01, default: 1 },
   { key: 'warp', label: 'Warp', group: 'Shape', min: 0, max: 8, step: 0.01, default: 3 },
   { key: 'octaves', label: 'Detail', group: 'Shape', min: 1, max: 8, step: 1, default: 5 },
+  // A resting whirlpool in the middle (radians at the center; negative turns the other way).
+  // String bends add to this.
+  { key: 'twist', label: 'Swirl', group: 'Shape', min: -4, max: 4, step: 0.01, default: 0 },
 
   // Color
   { key: 'hue', label: 'Hue shift', group: 'Color', min: 0, max: 1, step: 0.001, default: 0 },

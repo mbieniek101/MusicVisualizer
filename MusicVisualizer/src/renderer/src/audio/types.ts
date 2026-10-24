@@ -23,6 +23,11 @@ export interface AudioFeatures {
   momentum: number
   /** A push from each attack that coasts back down; fast runs stack up. See momentum.ts. */
   surge: number
+  /**
+   * How far the held note is bent from where it was picked: 1 = a whole step up,
+   * -1 = a whole step down, 0 = unbent (or a chord). Follows the bend as it happens. See bend.ts.
+   */
+  bend: number
   /** Raw input level in dBFS (0 = full scale), before gain normalizing. */
   inputDb: number
   /** True while the input is hitting full scale (turn the gain or amp output down). */
@@ -40,6 +45,7 @@ export const SILENT_FEATURES: AudioFeatures = {
   isOnset: false,
   momentum: 0,
   surge: 0,
+  bend: 0,
   inputDb: -Infinity,
   clipping: false
 }

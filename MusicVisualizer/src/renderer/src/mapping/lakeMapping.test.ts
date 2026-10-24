@@ -60,6 +60,16 @@ describe('mapLake', () => {
     expect(intense.smoothness).toBeGreaterThan(0) // never drops to no smoothing at all
   })
 
+  it('winds the whirlpool with bends, in the direction of the bend', () => {
+    const unbent = mapLake(base, { ...loud, bend: 0 })
+    const up = mapLake(base, { ...loud, bend: 1 })
+    const down = mapLake(base, { ...loud, bend: -1 })
+    expect(unbent.twist).toBeCloseTo(base.twist, 10)
+    expect(up.twist).toBeGreaterThan(base.twist + 1)
+    expect(down.twist).toBeLessThan(base.twist - 1)
+    expect(up.hue).toBeGreaterThan(unbent.hue)
+  })
+
   it('never pushes the black level below 0', () => {
     const out = mapLake({ ...base, blackLevel: 0.05, reactLevelCoverage: 2 }, loud)
     expect(out.blackLevel).toBe(0)
