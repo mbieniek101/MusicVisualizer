@@ -12,7 +12,7 @@
  * Three layers of response, from quickest to slowest:
  *  1. the sound right now: loudness, lows, tone, the glow of each attack
  *  2. surge: each attack shoves the lake forward and it coasts, with fast runs
- *     stacking into a big push
+ *     stacking into a big push, and the deep currents swell outward
  *  3. momentum: playing hard and busy builds up over a couple of seconds and
  *     makes everything faster, wilder, more colorful and more responsive,
  *     then winds down after you stop
@@ -20,6 +20,11 @@
  * And one gesture that follows your fretting hand directly: bending a string
  * winds a whirlpool into the middle of the pond (bend up one way, down the
  * other), and slides the colors along the palette. Vibrato makes it wobble.
+ *
+ * None of these gestures move the frame. They move the liquid, and its depths
+ * answer at different speeds: the surface follows your hand, the deep currents
+ * catch up and settle later (twist vs twistDeep below, and the layered stirring
+ * in lake.frag.glsl). That lag is what makes it feel loose, like water.
  *
  * Each connection has an "amount" slider (the Reactivity folder) so you can
  * dial it in while playing. Amount 0 turns that connection off.
@@ -40,7 +45,7 @@ export const lakeReactivityParams: ParamSpec[] = [
   reactivity('reactBrightnessHue', 'Tone → color', 0.6),
   reactivity('reactLevelSpeed', 'Loudness → flow', 0.5),
   reactivity('reactLowWarp', 'Lows → warp', 0.4),
-  reactivity('reactOnsetZoom', 'Surge → zoom push', 0.6)
+  reactivity('reactSurgeSwell', 'Surge → swell', 0.6)
 ]
 
 /**
@@ -60,13 +65,18 @@ export const lakeGlide: GlideSpec = {
   // Color shifts like pigments mixing.
   hue: { rise: 0.8, fall: 0.8 },
   colorSpread: { rise: 0.6, fall: 1.5 },
-  // The whirlpool follows your finger closely: bends are already smooth, and a
-  // lag here would make vibrato mushy. (When a note ends, the bend tracker
-  // relaxes the bend back to 0 gently, so the whirlpool unwinds on its own.)
-  twist: { rise: 0.08, fall: 0.08 },
-  // Warp and zoom reshape the whole frame: quick enough to feel, slow enough not to jolt.
+  // The whirlpool's surface follows your finger, with just enough lag that it
+  // feels dragged through water rather than locked to the pitch; vibrato still
+  // ripples through. The deep currents take much longer to get going and longer
+  // still to stop, so when you release a bend the surface unwinds first and the
+  // depths drift back after it. (When a note ends, the bend tracker relaxes the
+  // bend back to 0 gently too.)
+  twist: { rise: 0.25, fall: 0.25 },
+  twistDeep: { rise: 1.2, fall: 2.0 },
+  // Warp stirs the whole liquid: quick enough to feel, slow enough not to jolt.
   warp: { rise: 0.4, fall: 1.4 },
-  zoom: { rise: 0.12, fall: 0.8 }
+  // A swell wells up quickly and spreads back out slowly, like a wave settling.
+  swell: { rise: 0.3, fall: 1.6 }
 }
 
 function reactivity(key: string, label: string, defaultAmount: number): ParamSpec {
@@ -111,10 +121,14 @@ export function mapLake(base: ParamValues, audio: AudioFeatures): ParamValues {
 
   // Bends wind a whirlpool into the middle of the pond. A whole-step bend twists
   // the center about 1.6 radians (a quarter turn); bending down twists the other way.
+  // Both depths aim for the same twist; they only differ in how fast they get
+  // there (see lakeGlide).
   p.twist = base.twist + base.reactBendSwirl * audio.bend * 1.6
+  p.twistDeep = p.twist
 
-  // Surges push the view inward, so a fast run feels like rushing forward.
-  p.zoom = base.zoom * (1 + base.reactOnsetZoom * surge * 0.15)
+  // Surges push the deep currents outward from the middle, so a fast run wells
+  // up through the pond. Only the liquid moves; the view stays put.
+  p.swell = Math.min(0.5, base.reactSurgeSwell * surge * 0.25)
 
   // Responsiveness. The more momentum, the shorter every glide time: calm playing
   // paints slowly, intense playing snaps around. The output loop reads this value

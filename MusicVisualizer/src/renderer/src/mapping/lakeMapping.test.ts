@@ -23,15 +23,17 @@ describe('mapLake', () => {
     for (const key of ['speed', 'blackLevel', 'warp', 'hue', 'brightness', 'zoom']) {
       expect(quiet[key]).toBeCloseTo(base[key], 10)
     }
+    expect(quiet.swell).toBe(0)
+    expect(quiet.twistDeep).toBeCloseTo(base.twist, 10)
   })
 
-  it('makes loud playing faster, more covered, more warped, brighter and closer', () => {
+  it('makes loud playing faster, more covered, more warped, brighter and swelling', () => {
     const out = mapLake(base, loud)
     expect(out.speed).toBeGreaterThan(base.speed)
     expect(out.blackLevel).toBeLessThan(base.blackLevel)
     expect(out.warp).toBeGreaterThan(base.warp)
     expect(out.brightness).toBeGreaterThan(base.brightness)
-    expect(out.zoom).toBeGreaterThan(base.zoom)
+    expect(out.swell).toBeGreaterThan(0)
   })
 
   it('does nothing when every reactivity amount is 0', () => {
@@ -41,13 +43,14 @@ describe('mapLake', () => {
     for (const key of ['speed', 'blackLevel', 'warp', 'brightness', 'zoom', 'colorSpread']) {
       expect(out[key]).toBeCloseTo(off[key], 10)
     }
+    expect(out.swell).toBe(0)
   })
 
   it('shoves the flow forward on a surge, more than loudness alone does', () => {
     const steady = mapLake(base, { ...loud, surge: 0, momentum: 0 })
     const shoved = mapLake(base, { ...loud, surge: 1, momentum: 0 })
     expect(shoved.speed).toBeGreaterThan(steady.speed + 1)
-    expect(shoved.zoom).toBeGreaterThan(steady.zoom)
+    expect(shoved.swell).toBeGreaterThan(steady.swell)
   })
 
   it('makes everything wilder and more responsive as momentum builds', () => {
@@ -68,6 +71,12 @@ describe('mapLake', () => {
     expect(up.twist).toBeGreaterThan(base.twist + 1)
     expect(down.twist).toBeLessThan(base.twist - 1)
     expect(up.hue).toBeGreaterThan(unbent.hue)
+    // The deep currents head for the same whirlpool (they just get there later).
+    expect(up.twistDeep).toBeCloseTo(up.twist, 10)
+  })
+
+  it('moves the liquid, not the view: surges never zoom the frame', () => {
+    expect(mapLake(base, loud).zoom).toBe(base.zoom)
   })
 
   it('never pushes the black level below 0', () => {
