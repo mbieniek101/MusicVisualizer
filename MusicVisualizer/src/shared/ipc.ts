@@ -66,6 +66,8 @@ export const IPC = {
   audioOpenFile: 'audio:open-file',
   /** main → output: the bytes of an audio file to play and analyze. */
   audioFile: 'audio:file',
+  /** control → main → output: restart the current audio source (the Reconnect button). */
+  audioReconnect: 'audio:reconnect',
 
   // ---- stats ----
   /** output → main → control: render stats, sent about once per second. */
@@ -158,6 +160,10 @@ export interface VisualizerApi {
   onAudioStatus(callback: (status: AudioStatus) => void): () => void
   sendAudioMeters(meters: AudioMeters): void
   onAudioMeters(callback: (meters: AudioMeters) => void): () => void
+
+  // Reconnect button: control asks, output restarts the source
+  reconnectAudio(): void
+  onAudioReconnect(callback: () => void): () => void
 
   // audio files: control asks, output receives
   openAudioFile(): Promise<string | null>

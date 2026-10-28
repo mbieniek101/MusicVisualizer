@@ -55,6 +55,9 @@ const api: VisualizerApi = {
   sendAudioMeters: (meters) => ipcRenderer.send(IPC.audioMeters, meters),
   onAudioMeters: (callback) => subscribe<AudioMeters>(IPC.audioMeters, callback),
 
+  reconnectAudio: () => ipcRenderer.send(IPC.audioReconnect),
+  onAudioReconnect: (callback) => subscribe<void>(IPC.audioReconnect, () => callback()),
+
   openAudioFile: () => ipcRenderer.invoke(IPC.audioOpenFile),
   onAudioFile: (callback) => subscribe<AudioFilePayload>(IPC.audioFile, callback),
 

@@ -32,6 +32,13 @@ export class AudioEngine {
   private sendToSpeakers = false
   private channel: ChannelMode = 'mix'
 
+  /**
+   * Called if a live input ends on its own: the device was unplugged, or Windows
+   * closed a system-audio capture because the playback device changed. Not
+   * called when the app stops a source itself.
+   */
+  onSourceEnded: (() => void) | null = null
+
   private readonly timeDomain: Float32Array<ArrayBuffer>
   private readonly spectrumDb: Float32Array<ArrayBuffer>
 
@@ -63,7 +70,7 @@ export class AudioEngine {
         channelCount: { ideal: 2 }
       }
     })
-    this.attach(this.context.createMediaStreamSource(stream), () => stopTracks(stream), false)
+    this.attachStream(stream)
   }
 
   /**
@@ -81,7 +88,7 @@ export class AudioEngine {
       stopTracks(stream)
       throw new Error('System audio capture is not supported on this system')
     }
-    this.attach(this.context.createMediaStreamSource(stream), () => stopTracks(stream), false)
+    this.attachStream(stream)
   }
 
   /** Decode an audio file (mp3, wav, ogg, flac...) and loop it, playing through the speakers. */
@@ -121,6 +128,24 @@ export class AudioEngine {
       spectrumDb: this.spectrumDb,
       sampleRate: this.context.sampleRate,
       dt
+    }
+  }
+
+  /** Use a live stream as the source, and report it if the stream ends by itself. */
+  private attachStream(stream: MediaStream): void {
+    let stoppedByUs = false
+    this.attach(
+      this.context.createMediaStreamSource(stream),
+      () => {
+        stoppedByUs = true
+        stopTracks(stream)
+      },
+      false
+    )
+    for (const track of stream.getAudioTracks()) {
+      track.addEventListener('ended', () => {
+        if (!stoppedByUs) this.onSourceEnded?.()
+      })
     }
   }
 

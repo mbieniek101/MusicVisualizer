@@ -8,6 +8,11 @@
  *
  * The render loop only ever calls update(dt). Everything else here reacts to
  * messages.
+ *
+ * System audio needs extra care: Windows ties the capture to whichever playback
+ * device was the default when it started. So while it's the source, this file
+ * watches for the default device changing (connecting Bluetooth headphones,
+ * plugging in HDMI) and restarts the capture on the new device.
  */
 import {
   DEFAULT_AUDIO_SETTINGS,
@@ -20,11 +25,18 @@ import {
 import type { AudioInputInfo, AudioStatus } from '../../../shared/ipc'
 import { AudioEngine } from '../audio/AudioEngine'
 import { FeatureExtractor } from '../audio/FeatureExtractor'
-import { listAudioInputs, onDevicesChanged } from '../audio/devices'
+import { defaultOutputLabel, listAudioInputs, onDevicesChanged } from '../audio/devices'
+import { DefaultOutputWatcher, readableOutputName } from '../audio/outputWatcher'
 import { SILENT_FEATURES, type AudioFeatures } from '../audio/types'
 
 /** How often to send meter values to the control panel. More often just costs IPC. */
 const METER_INTERVAL = 0.05
+
+/** How often to double-check the default playback device while using system audio (ms). */
+const OUTPUT_CHECK_INTERVAL = 1500
+
+/** Wait this long after a device change before reconnecting: Bluetooth takes a moment to settle (ms). */
+const RECONNECT_DELAY = 800
 
 export interface AudioInput {
   /** Called once per frame by the render loop. */
@@ -49,8 +61,40 @@ export async function startAudioInput(): Promise<AudioInput> {
     window.api.sendAudioStatus({ state, message })
   }
 
+  // ---- following the default playback device (system audio only) -------------
+
+  let reconnectTimer: ReturnType<typeof setTimeout> | null = null
+
+  /** Restart the current source shortly, unless something else restarts it first. */
+  function reconnectSoon(reason: string): void {
+    if (reconnectTimer) clearTimeout(reconnectTimer)
+    setStatus('starting', `${reason} Reconnecting…`)
+    reconnectTimer = setTimeout(() => {
+      reconnectTimer = null
+      void switchSource(settings.source)
+    }, RECONNECT_DELAY)
+  }
+
+  const outputWatcher = new DefaultOutputWatcher(defaultOutputLabel, (label) => {
+    if (settings.source !== SOURCE_SYSTEM) return
+    reconnectSoon(`Playback switched to ${readableOutputName(label) || 'another device'}.`)
+  })
+  // devicechange events usually catch a switch right away; this is the backup.
+  setInterval(() => void outputWatcher.check(), OUTPUT_CHECK_INTERVAL)
+
+  engine.onSourceEnded = () => {
+    if (settings.source === SOURCE_SYSTEM) {
+      reconnectSoon('System audio capture stopped.')
+    } else if (settings.source.startsWith(DEVICE_PREFIX)) {
+      setStatus('error', 'The input device disconnected. Pick it again, or click Reconnect.')
+    }
+  }
+
   async function switchSource(source: string): Promise<void> {
     const mySwitch = ++switchCount
+    if (reconnectTimer) clearTimeout(reconnectTimer)
+    reconnectTimer = null
+    outputWatcher.forget()
     engine.stop()
     extractor.reset()
 
@@ -64,7 +108,9 @@ export async function startAudioInput(): Promise<AudioInput> {
       let label: string
       if (source === SOURCE_SYSTEM) {
         await engine.useSystemAudio()
-        label = 'System audio'
+        // Remember which device the capture is attached to, to notice if it changes.
+        const output = readableOutputName(await outputWatcher.remember())
+        label = output ? `System audio (${output})` : 'System audio'
       } else if (source === SOURCE_FILE) {
         if (!file) {
           setStatus('idle', 'Load an audio file to use this source.')
@@ -125,7 +171,13 @@ export async function startAudioInput(): Promise<AudioInput> {
     if (settings.source === SOURCE_FILE) void switchSource(SOURCE_FILE)
   })
 
-  onDevicesChanged(() => void refreshDevices())
+  onDevicesChanged(() => {
+    void refreshDevices()
+    void outputWatcher.check()
+  })
+
+  // The control panel's Reconnect button: restart whatever source is selected.
+  window.api.onAudioReconnect(() => void switchSource(settings.source))
 
   // ---- start up ---------------------------------------------------------------
 

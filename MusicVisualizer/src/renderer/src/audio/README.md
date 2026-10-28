@@ -6,6 +6,7 @@ Gets sound in and turns it into numbers the visuals can use. Knows nothing about
 | --------------------- | ------------------------------------------------------------------------------------------ | ----------------------- |
 | `AudioEngine.ts`      | The Web Audio graph: device / system audio / file in, channel pick, gain, analyser out     | yes                     |
 | `devices.ts`          | Lists recording devices, watches for plug/unplug                                           | yes                     |
+| `outputWatcher.ts`    | Notices the default playback device changing, so System audio can follow it                | no                      |
 | `FeatureExtractor.ts` | Raw samples + spectrum → `AudioFeatures`, once per frame                                   | no                      |
 | `dsp.ts`              | Pure measurements: RMS, band energy, spectral centroid, spectral flux                      | no                      |
 | `smoothing.ts`        | `Envelope` (attack/release), `AutoLevel` (normalizing), `OnsetDetector`                    | no                      |

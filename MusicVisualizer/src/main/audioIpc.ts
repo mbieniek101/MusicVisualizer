@@ -57,6 +57,12 @@ export function registerAudioIpc({ control, output }: Windows, store: StoredSett
     sendTo(control, IPC.audioMeters, meters)
   })
 
+  // ---- Reconnect button: control → main → output --------------------------------
+  ipcMain.on(IPC.audioReconnect, (event) => {
+    if (!fromControl(event)) return
+    sendTo(output, IPC.audioReconnect, null)
+  })
+
   // ---- files: control asks, main reads, output plays --------------------------
   ipcMain.handle(IPC.audioOpenFile, async (event) => {
     if (event.sender !== control.webContents) return null
