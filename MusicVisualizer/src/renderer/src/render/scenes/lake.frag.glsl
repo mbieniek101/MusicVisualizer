@@ -19,6 +19,9 @@ uniform float uSaturation;
 uniform float uBrightness;
 uniform float uBlackLevel;   // noise value below which everything is black
 uniform float uSoftness;     // width of the fade from black into a blob
+uniform float uTwist;        // whirlpool at the surface: radians of twist at the center (sign = direction)
+uniform float uTwistDeep;    // the same whirlpool in the deep currents, which lag behind the surface
+uniform float uSwell;        // deep currents pushed outward from the middle (attack surges)
 
 out vec4 outColor;
 
@@ -83,32 +86,69 @@ vec3 adjustSaturation(vec3 color, float amount) {
   return mix(vec3(luma), color, amount);
 }
 
+// ---- moving the liquid ----------------------------------------------------
+
+// Stirring. Rotates a point around the center by an angle that's largest in the
+// middle and fades out toward the edges. Because the angle changes with distance,
+// the pattern doesn't turn as a whole: it gets wound into a spiral, like stirring
+// the middle of a pond. "give" (around 1) stretches the reach of the stir.
+vec2 stir(vec2 uv, float angle, float give) {
+  float a = angle * give * exp(-dot(uv, uv) * 3.0 / give);
+  float c = cos(a);
+  float s = sin(a);
+  return mat2(c, s, -s, c) * uv;
+}
+
+// Swelling. Sampling closer to the center spreads the middle outward, like water
+// welling up from below and pushing out toward the banks; fades toward the edges.
+vec2 swell(vec2 uv, float amount, float give) {
+  return uv * (1.0 - amount * give * exp(-dot(uv, uv) * 2.0));
+}
+
+// Screen position -> noise position. Dividing by zoom means a bigger value shows
+// less of the pattern, i.e. zooms in; at zoom 1 the screen height spans 3 units.
+// The offset keeps us away from the noise origin, where hashes tend to come out
+// low; without it the center of the screen (the middle of the amp) stays dark.
+vec2 toNoise(vec2 uv) {
+  return uv * (3.0 / uZoom) + vec2(37.2, 17.9);
+}
+
 // ---- main ----------------------------------------------------------------
 
 void main() {
   // Centered coordinates where the screen height spans 1 unit, so blobs stay
   // round on any aspect ratio (a 16:9 projector, a square test window...).
   vec2 uv = (gl_FragCoord.xy - 0.5 * uResolution) / uResolution.y;
-  // The offset keeps us away from the noise origin, where hashes tend to come out
-  // low; without it the center of the screen (the middle of the amp) stays dark.
-  // Dividing by zoom means a bigger value shows less of the pattern, i.e. zooms in.
-  // At zoom 1 the screen height spans 3 units of noise.
-  vec2 p = uv * (3.0 / uZoom) + vec2(37.2, 17.9);
   float t = uTime;
 
-  // Layer 1: a slowly drifting 2D offset field.
+  // Gestures act on the liquid, never on the frame. Each warp layer below is a
+  // different depth of the same liquid, and each gets its own amount of stirring
+  // and swelling: the fine surface follows your hand closely, the broad currents
+  // underneath catch up later and settle later. That lag between depths is what
+  // makes it read as water rather than a rotating, zooming window.
+  // "give" varies slowly across the pond, so the vortex has no perfect circle
+  // and some patches yield more than others, like water over an uneven bed.
+  float give = 0.6 + 0.8 * noise(uv * 1.7 + vec2(3.1, 7.4) + 0.05 * t);
+  vec2 deepUv = swell(stir(uv, uTwistDeep, give), uSwell, give);
+  vec2 midUv = swell(stir(uv, mix(uTwistDeep, uTwist, 0.5), give), 0.4 * uSwell, give);
+  vec2 surfaceUv = stir(uv, uTwist, give);
+
+  // Layer 1: a slowly drifting 2D offset field, the deepest current.
+  vec2 p = toNoise(deepUv);
   vec2 q = vec2(
     fbm(p + vec2(0.0, 0.0) + 0.10 * t),
     fbm(p + vec2(5.2, 1.3) - 0.08 * t)
   );
 
   // Layer 2: noise sampled at positions pushed around by layer 1.
+  p = toNoise(midUv);
   vec2 r = vec2(
     fbm(p + uWarp * q + vec2(1.7, 9.2) + 0.15 * t),
     fbm(p + uWarp * q + vec2(8.3, 2.8) + 0.126 * t)
   );
 
-  // Final value: noise pushed around by layer 2.
+  // Final value: the surface, pushed around by layer 2.
+  p = toNoise(surfaceUv);
   float f = fbm(p + uWarp * r);
 
   // Color comes from the warp fields, not just f, so neighboring blobs pick up

@@ -18,7 +18,10 @@ const UNIFORMS = [
   'uSaturation',
   'uBrightness',
   'uBlackLevel',
-  'uSoftness'
+  'uSoftness',
+  'uTwist',
+  'uTwistDeep',
+  'uSwell'
 ] as const
 
 export function createLakeScene(gl: WebGL2RenderingContext): Scene {
@@ -40,6 +43,9 @@ export function createLakeScene(gl: WebGL2RenderingContext): Scene {
       gl.uniform1f(u.uBrightness, params.brightness)
       gl.uniform1f(u.uBlackLevel, params.blackLevel)
       gl.uniform1f(u.uSoftness, params.softness)
+      gl.uniform1f(u.uTwist, params.twist)
+      gl.uniform1f(u.uTwistDeep, params.twistDeep)
+      gl.uniform1f(u.uSwell, params.swell)
       triangle.draw()
     },
     dispose() {

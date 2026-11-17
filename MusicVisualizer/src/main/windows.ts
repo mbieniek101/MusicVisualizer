@@ -14,13 +14,17 @@ import type { DisplayInfo, OutputState } from '../shared/ipc'
 type Page = 'control' | 'output'
 
 /** Settings shared by both windows. The security-relevant ones are spelled out on purpose. */
-function baseWindow(options: Electron.BrowserWindowConstructorOptions): BrowserWindow {
+function baseWindow(
+  options: Electron.BrowserWindowConstructorOptions,
+  extraWebPreferences: Electron.WebPreferences = {}
+): BrowserWindow {
   const win = new BrowserWindow({
     show: false,
     autoHideMenuBar: true,
     ...(process.platform === 'linux' ? { icon } : {}),
     ...options,
     webPreferences: {
+      ...extraWebPreferences,
       preload: join(__dirname, '../preload/index.js'),
       sandbox: true, // renderer runs with Chromium's sandbox, no Node access
       contextIsolation: true, // the page cannot touch the preload's JS world
@@ -63,12 +67,17 @@ export function createControlWindow(): BrowserWindow {
 }
 
 export function createOutputWindow(): BrowserWindow {
-  const win = baseWindow({
-    title: 'MusicVisualizer · Output',
-    width: 960,
-    height: 540,
-    backgroundColor: '#000000'
-  })
+  const win = baseWindow(
+    {
+      title: 'MusicVisualizer · Output',
+      width: 960,
+      height: 540,
+      backgroundColor: '#000000'
+    },
+    // Browsers only allow audio to start after a click. The output window has
+    // no buttons to click, so allow it to start audio on its own.
+    { autoplayPolicy: 'no-user-gesture-required' }
+  )
   win.once('ready-to-show', () => {
     win.show()
     // With a projector or second monitor plugged in, start fullscreen on it.
